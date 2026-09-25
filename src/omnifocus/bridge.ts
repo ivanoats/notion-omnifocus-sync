@@ -25,3 +25,12 @@ export async function exportOmniFocus(params: {
   const json = await evaluateOmniScript(new URL("./export.omnijs.js", import.meta.url), params);
   return JSON.parse(json) as OFSnapshot;
 }
+
+/** Create top-level OmniFocus projects. Returns { key: newProjectId }. Callers must enforce --write + host guard. */
+export async function createOmniFocusProjects(
+  projects: { key: string; name: string; status: string; deferDate: string | null; dueDate: string | null }[],
+): Promise<Record<string, string>> {
+  if (!projects.length) return {};
+  const json = await evaluateOmniScript(new URL("./createProjects.omnijs.js", import.meta.url), { projects });
+  return JSON.parse(json) as Record<string, string>;
+}

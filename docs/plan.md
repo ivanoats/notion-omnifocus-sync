@@ -63,7 +63,7 @@ No open repeating tasks are in scope, so repeats drop from a blocker to a defens
 | name | `Project name` (title) | — |
 | parentFolder | `Folder` (select) | add |
 | active | `Not started` / `In progress` | keep Notion's choice |
-| onHold | `On hold` | add option (unverified whether the API can add options to a status-type property; fall back to adding by hand) |
+| onHold | `On hold` | add option (the API can add status options but can't move them between groups, so drag `Dropped` into Complete by hand) |
 | done | `Done` | — |
 | dropped | `Dropped` | add option |
 | deferDate / dueDate | `Start date` / `End date` | — |
