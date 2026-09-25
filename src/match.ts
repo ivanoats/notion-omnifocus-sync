@@ -9,7 +9,7 @@ export interface Named {
 export interface Match<A, B> {
   of: A;
   notion: B;
-  method: "ofId" | "exact" | "fuzzy";
+  method: "ofId" | "override" | "exact" | "fuzzy";
   score: number;
 }
 
@@ -42,12 +42,13 @@ export function similarity(a: string, b: string): number {
 }
 
 /**
- * One-to-one matching: existing OF ID links first, then exact normalized names,
- * then the best remaining fuzzy pairs at or above `threshold`.
+ * One-to-one matching: existing OF ID links first, then hand-confirmed overrides,
+ * then exact normalized names, then the best remaining fuzzy pairs at or above `threshold`.
  */
 export function matchByName<A extends Named, B extends Named>(
   ofItems: A[],
   notionItems: B[],
+  overrides: { omnifocus: string; notion: string }[] = [],
   threshold = 0.5,
 ): MatchResult<A, B> {
   const pairs: Match<A, B>[] = [];
@@ -63,6 +64,12 @@ export function matchByName<A extends Named, B extends Named>(
   for (const b of notionItems) {
     const a = b.ofId ? byId.get(b.ofId) : undefined;
     if (a && ofLeft.has(a)) take(a, b, "ofId", 1);
+  }
+
+  for (const o of overrides) {
+    const a = [...ofLeft].find((a) => normalizeName(a.name) === normalizeName(o.omnifocus));
+    const b = [...notionLeft].find((b) => normalizeName(b.name) === normalizeName(o.notion));
+    if (a && b) take(a, b, "override", 1);
   }
 
   for (const a of [...ofLeft]) {

@@ -6,7 +6,7 @@ import { missingSchema, REQUIRED_PROJECT_PROPS, REQUIRED_TASK_PROPS, type Schema
 // Pure pre-migration status report. Once the state DB exists this grows a drift section.
 
 export interface StatusReport {
-  omnifocus: { projects: number; tasks: number; openTasks: number; inbox: number; subtasks: number; repeating: number };
+  omnifocus: { projects: number; tasks: number; openTasks: number; subtasks: number; repeating: number };
   notion: { projects: number; tasks: number; linkedTasks: number; linkedProjects: number };
   projects: {
     matched: { of: string; notion: string; method: string; score: number }[];
@@ -27,6 +27,7 @@ export function buildStatus(of: OFSnapshot, notion: NotionSnapshot, config: Conf
   const m = matchByName(
     of.projects,
     liveNotionProjects.map((p) => ({ ...p, id: p.pageId, name: p.title })),
+    config.projectMatchOverrides,
   );
 
   const warnings: string[] = [];
@@ -40,7 +41,6 @@ export function buildStatus(of: OFSnapshot, notion: NotionSnapshot, config: Conf
       projects: of.projects.length,
       tasks: of.tasks.length,
       openTasks: open.length,
-      inbox: open.filter((t) => t.inInbox).length,
       subtasks: open.filter((t) => t.parentTaskId).length,
       repeating: open.filter((t) => t.repeatRule).length,
     },
@@ -79,7 +79,7 @@ export function formatStatus(r: StatusReport): string {
   const n = r.notion;
   const lines = [
     "OmniFocus (in scope)",
-    `  ${o.projects} projects, ${o.openTasks} open tasks (${o.inbox} in inbox, ${o.subtasks} subtasks, ${o.repeating} repeating)`,
+    `  ${o.projects} projects, ${o.openTasks} open tasks (${o.subtasks} subtasks, ${o.repeating} repeating; inbox excluded)`,
     "Notion",
     `  ${n.projects} projects (${n.linkedProjects} linked), ${n.tasks} tasks (${n.linkedTasks} linked)`,
     "",

@@ -57,13 +57,14 @@
 
   const tasks = [];
   for (const t of flattenedTasks) {
+    // The inbox is triage and never syncs; every other task has a containing project.
     const project = t.containingProject;
-    if (project && !projectIds.has(project.id.primaryKey)) continue;
+    if (t.inInbox || !project || !projectIds.has(project.id.primaryKey)) continue;
     const status = taskStatus(t);
     const completedAt = t.completionDate || t.dropDate || null;
     if (!recent(status, completedAt)) continue;
     const parent = t.parent;
-    const parentIsTask = parent && (!project || parent.id.primaryKey !== project.task.id.primaryKey);
+    const parentIsTask = parent && parent.id.primaryKey !== project.task.id.primaryKey;
     tasks.push({
       id: t.id.primaryKey,
       name: t.name,
@@ -75,9 +76,8 @@
       completedAt: iso(completedAt),
       estimatedMinutes: t.estimatedMinutes ?? null,
       tags: t.tags.map(tagPath),
-      projectId: project ? project.id.primaryKey : null,
+      projectId: project.id.primaryKey,
       parentTaskId: parentIsTask ? parent.id.primaryKey : null,
-      inInbox: t.inInbox,
       repeatRule: t.repetitionRule ? t.repetitionRule.ruleString : null,
       modifiedAt: iso(t.modified),
     });

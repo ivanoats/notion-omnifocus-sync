@@ -14,6 +14,8 @@ export interface Config {
     priorityTagParent: string;
   };
   tagAllowlist: string[];
+  /** Hand-confirmed project pairs the name matcher can't find on its own. */
+  projectMatchOverrides: { omnifocus: string; notion: string }[];
   conflictPolicy: "latest-wins";
   importCompletedWithinDays: number;
 }

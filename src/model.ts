@@ -15,9 +15,9 @@ export interface OFTask {
   estimatedMinutes: number | null;
   /** Full tag paths, e.g. "Mac : Online". */
   tags: string[];
-  projectId: string | null;
+  /** Always set: inbox tasks are excluded from the export. */
+  projectId: string;
   parentTaskId: string | null;
-  inInbox: boolean;
   repeatRule: string | null;
   modifiedAt: string | null;
 }

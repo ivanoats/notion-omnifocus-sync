@@ -35,6 +35,18 @@ test("matchByName prefers OF ID links, then exact, then best fuzzy, one-to-one",
   assert.deepEqual(r.notionOnly.map((x) => x.id), ["n4"]);
 });
 
+test("overrides pair names the matcher would miss, before exact matching", () => {
+  const r = matchByName(
+    [{ id: "a", name: "SustainableWebsites" }, { id: "b", name: "Blue Star" }],
+    [{ id: "n1", name: "sustainablewebsites2" }, { id: "n2", name: "Blue Star" }],
+    [{ omnifocus: "SustainableWebsites", notion: "sustainablewebsites2" }],
+  );
+  assert.deepEqual(
+    r.pairs.map((p) => [p.of.id, p.notion.id, p.method]),
+    [["a", "n1", "override"], ["b", "n2", "exact"]],
+  );
+});
+
 test("a fuzzy candidate is not reused once taken", () => {
   const r = matchByName(
     [{ id: "a", name: "Blue Star" }, { id: "b", name: "Blue Star engine" }],
