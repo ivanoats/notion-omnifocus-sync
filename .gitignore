@@ -1,0 +1,9 @@
+node_modules/
+dist/
+backups/
+*.sqlite
+*.sqlite-*
+.env
+sync.config.json
+links.proposed.yaml
+.DS_Store

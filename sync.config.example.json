@@ -1,0 +1,21 @@
+{
+  "syncHost": "taxis-brevifolia",
+  "notion": {
+    "apiVersion": "2026-03-11",
+    "tokenKeychainService": "notion-omnifocus-sync",
+    "tasksDataSourceId": "364f0de1-d4db-48d9-844b-5230e96c216d",
+    "projectsDataSourceId": "31b7cf8d-ff85-8040-a125-000b0e6ba1d0"
+  },
+  "omnifocus": {
+    "excludeFolders": ["Lululemon"],
+    "priorityTagParent": "Priority"
+  },
+  "tagAllowlist": [
+    "Mac : Online", "website", "to-read", "javascript", "to-watch", "reactjs", "css",
+    "writing", "programming", "to-write", "mandolin", "webgis", "video-production",
+    "shopping", "elks", "volunteering", "taxes",
+    "Priority : High", "Priority : Medium", "Priority : Low"
+  ],
+  "conflictPolicy": "latest-wins",
+  "importCompletedWithinDays": 30
+}
