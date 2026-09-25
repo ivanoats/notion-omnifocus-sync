@@ -1,0 +1,25 @@
+{
+  "name": "notion-omnifocus-sync",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Two-way sync between OmniFocus and Notion Tasks/Projects",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "nos": "src/cli.ts"
+  },
+  "scripts": {
+    "nos": "node src/cli.ts",
+    "test": "node --test 'src/**/*.test.ts'",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.26.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2"
+  }
+}
