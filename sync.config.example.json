@@ -7,15 +7,39 @@
     "projectsDataSourceId": "31b7cf8d-ff85-8040-a125-000b0e6ba1d0"
   },
   "omnifocus": {
-    "excludeFolders": ["Lululemon"],
+    "excludeFolders": [
+      "Lululemon"
+    ],
     "priorityTagParent": "Priority"
   },
   "tagAllowlist": [
-    "Mac : Online", "website", "to-read", "javascript", "to-watch", "reactjs", "css",
-    "writing", "programming", "to-write", "mandolin", "webgis", "video-production",
-    "shopping", "elks", "volunteering", "taxes",
-    "Priority : High", "Priority : Medium", "Priority : Low"
+    "Mac : Online",
+    "website",
+    "to-read",
+    "javascript",
+    "to-watch",
+    "reactjs",
+    "css",
+    "writing",
+    "programming",
+    "to-write",
+    "mandolin",
+    "webgis",
+    "video-production",
+    "shopping",
+    "elks",
+    "volunteering",
+    "taxes",
+    "Priority : High",
+    "Priority : Medium",
+    "Priority : Low"
   ],
   "conflictPolicy": "latest-wins",
-  "importCompletedWithinDays": 30
+  "importCompletedWithinDays": 30,
+  "projectMatchOverrides": [
+    {
+      "omnifocus": "SustainableWebsites",
+      "notion": "sustainablewebsites2"
+    }
+  ]
 }

@@ -8,7 +8,7 @@ Two-way sync between OmniFocus and the existing Notion **Tasks** and **Projects*
 |---|---|
 | Direction | True two-way, merged field by field |
 | Sync host | `taxis-brevifolia` (the Mac mini at home). Write mode refuses to run on any other host. |
-| Scope | All OmniFocus projects except those in the `Lululemon` folder |
+| Scope | All OmniFocus projects except those in the `Lululemon` folder. All 41 sync, including life-area projects (Home, Family, …). The OmniFocus inbox is **not** synced: it's for triage, and its notes often hold forwarded email. |
 | Priority | Notion `Priority` ↔ OmniFocus tags `Priority : High / Medium / Low` |
 | Tags | Top 20 only (see [Tag allowlist](#tag-allowlist)). OmniFocus tags outside the list are never touched. |
 | Notion schema | Additive changes only: no renames, no deletions, existing views keep working |
@@ -63,7 +63,7 @@ No open repeating tasks are in scope, so repeats drop from a blocker to a defens
 | name | `Project name` (title) | — |
 | parentFolder | `Folder` (select) | add |
 | active | `Not started` / `In progress` | keep Notion's choice |
-| onHold | `On hold` | add option |
+| onHold | `On hold` | add option (unverified whether the API can add options to a status-type property; fall back to adding by hand) |
 | done | `Done` | — |
 | dropped | `Dropped` | add option |
 | deferDate / dueDate | `Start date` / `End date` | — |
@@ -110,7 +110,7 @@ Every step runs with `--dry-run` by default and is idempotent.
 
 1. `backup`: dump both sides to `backups/<timestamp>/*.json` and make an OmniFocus backup.
 2. `migrate schema`: add the properties and options above if they're missing.
-3. `migrate match-projects`: fuzzy-match names and write `links.proposed.yaml` for review. Confirmed pairs get linked and their `OF ID` written. Unmatched items on either side are created on the other.
+3. `migrate match-projects`: match by `OF ID`, then `projectMatchOverrides` from config (e.g. `SustainableWebsites` ↔ `sustainablewebsites2`), then exact and fuzzy names. Writes `links.proposed.yaml` for review. Confirmed pairs get linked and their `OF ID` written. Unmatched items on either side are created on the other.
 4. `migrate tasks`: create Notion pages for open in-scope OmniFocus tasks (plus anything completed in the last 30 days). The 2 existing Notion tasks are linked by hand.
 5. `status`: must report zero drift before `sync` is enabled.
 
