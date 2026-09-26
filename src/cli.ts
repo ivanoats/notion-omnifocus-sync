@@ -23,6 +23,8 @@ Migrations (dry-run unless --write; --write only runs on the sync host and backs
                                     Link, or create, projects from a reviewed proposal
   migrate tasks [--write]           Create Notion pages for in-scope OmniFocus tasks (after projects)`;
 
+const shellQuote = (arg: string) => (/^[\w./-]+$/.test(arg) ? arg : `'${arg.replace(/'/g, `'\\''`)}'`);
+
 const isFile = (path: string) => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
 
 async function snapshots(notion: Client, config: Config) {
@@ -64,12 +66,15 @@ async function main() {
   const [command, sub] = positionals;
   if (values.help || !command) return console.log(USAGE);
 
-  // `npm run nos migrate tasks --write` (no `--`) hands --write to npm, which only warns and
-  // exposes it as npm_config_write. Refuse rather than silently doing a dry run.
-  const swallowed = ["write", "apply", "json"].filter((f) => process.env[`npm_config_${f}`] !== undefined);
-  if (swallowed.length) {
-    throw new Error(`npm took ${swallowed.map((f) => `--${f}`).join(", ")} for itself. Put options after \`--\`:\n` +
-      `  npm run nos ${positionals.join(" ")} -- ${swallowed.map((f) => `--${f}`).join(" ")}`);
+  // `npm run nos … --write` (no `--`) hands options to npm, which only warns: a boolean flag
+  // shows up as npm_config_<name>, and `--apply <file>` loses the flag entirely, leaving the
+  // file as a stray positional. Refuse rather than silently doing a dry run.
+  const swallowed = ["write", "json"].filter((f) => process.env[`npm_config_${f}`] !== undefined).map((f) => `--${f}`);
+  const stray = positionals.slice(2);
+  if (stray.length && command === "migrate" && sub === "match-projects") swallowed.unshift("--apply", ...stray.map(shellQuote));
+  if (swallowed.length || stray.length) {
+    throw new Error("npm took the options for itself (or got an unexpected argument). Put options after `--`:\n" +
+      `  npm run nos ${[command, sub].filter(Boolean).join(" ")} -- ${swallowed.join(" ")}`.trimEnd());
   }
 
   if (values.write && command === "migrate" && sub === "match-projects" && !values.apply) {

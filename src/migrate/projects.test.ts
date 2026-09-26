@@ -111,5 +111,10 @@ test("createInOmniFocus refuses when a same-name project exists outside the sync
   const of = { ...ofSnap([]), outOfScopeProjects: [{ id: "old", name: "dotfiles", status: "done" as const, folderPath: [] }] };
   const plan = planApply({ link: [], createInNotion: [], createInOmniFocus: [{ id: "n1", name: "dotfiles" }] }, of, notionSnap([notionProject("n1", "dotfiles")]));
   assert.deepEqual(plan.ops, []);
-  assert.match(plan.errors[0], /already has "dotfiles" \(done\) outside the sync scope/);
+  assert.match(plan.errors[0], /already has "dotfiles" \(done\) outside the sync scope\. To link it, reopen it in OmniFocus/);
+
+  const inExcluded = { ...ofSnap([]), outOfScopeProjects: [{ id: "w", name: "Payroll", status: "active" as const, folderPath: ["Lululemon"] }] };
+  const plan2 = planApply({ link: [], createInNotion: [], createInOmniFocus: [{ id: "n2", name: "Payroll" }] }, inExcluded, notionSnap([notionProject("n2", "Payroll")]), ["Lululemon"]);
+  assert.match(plan2.errors[0], /To link it, move it out of the excluded "Lululemon" folder in OmniFocus/);
+  assert.doesNotMatch(plan2.errors[0], /reopen/);
 });
