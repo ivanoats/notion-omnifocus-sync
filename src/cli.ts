@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -63,6 +64,9 @@ async function main() {
 
   if (values.write && command === "migrate" && sub === "match-projects" && !values.apply) {
     throw new Error("--write needs --apply <reviewed proposal file>");
+  }
+  if (values.apply && !existsSync(values.apply)) {
+    throw new Error(`${values.apply} not found. Create it first with: npm run nos migrate match-projects`);
   }
   const config = loadConfig();
   const notion = await notionClient(config);
