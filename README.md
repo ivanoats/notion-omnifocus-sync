@@ -25,10 +25,19 @@ npm run nos backup                      # snapshots to backups/<timestamp>/
 npm run nos migrate schema              # show the Notion properties/options to add
 npm run nos migrate match-projects      # write links.proposed.yaml for review
 npm run nos migrate match-projects -- --apply links.proposed.yaml   # show what applying would do
+npm run nos migrate tasks               # show which OmniFocus tasks would become Notion pages
 npm test && npm run typecheck
 ```
 
-## First-time migration (on taxis-brevifolia)
+## First-time migration (on taxus-brevifolia)
+
+Over SSH, unlock the login keychain first. SSH logins leave it locked, so the Notion token can't be read:
+
+```sh
+security unlock-keychain ~/Library/Keychains/login.keychain-db
+```
+
+Then:
 
 ```sh
 git pull && npm ci
@@ -38,6 +47,8 @@ npm run nos migrate match-projects      # then review/edit links.proposed.yaml
 npm run nos migrate match-projects -- --apply links.proposed.yaml           # check the plan
 npm run nos migrate match-projects -- --apply links.proposed.yaml --write
 npm run nos status                      # every project should now be linked
+npm run nos migrate tasks               # check the plan: 0 unlinked projects
+npm run nos migrate tasks -- --write    # ~250 pages at Notion's ~3 req/s, about 2 minutes
 ```
 
 Re-running any step is safe. Work that's already done is detected through the `OF ID` stored in Notion and skipped.

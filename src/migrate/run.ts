@@ -1,13 +1,14 @@
 import { readFile, writeFile } from "node:fs/promises";
 import type { Client } from "@notionhq/client";
 import type { Config } from "../config.ts";
-import { ofIdProp, projectStatusFromNotion, projectToNotionProps } from "../mapping.ts";
+import { ofIdProp, projectStatusFromNotion, projectToNotionProps, taskToNotionProps } from "../mapping.ts";
 import type { NotionSnapshot, OFSnapshot } from "../model.ts";
 import { toSchema } from "../notion/mapper.ts";
 import { createOmniFocusProjects } from "../omnifocus/bridge.ts";
 import { folderNames } from "../report.ts";
 import { hasGap, missingSchema, requiredProjectProps, requiredTaskProps, schemaPatch, type SchemaGap } from "../schema.ts";
 import { describeOp, formatProposal, parseProposal, planApply, propose } from "./projects.ts";
+import { planTasks } from "./tasks.ts";
 
 // I/O half of the migrations. Every function prints its plan; it only writes when `write`
 // is true, and the CLI only passes write=true after the host guard and a fresh backup.
@@ -89,5 +90,48 @@ export async function applyProjects(
     if (!ofId) throw new Error(`OmniFocus did not return an id for "${p.title}"`);
     await notion.pages.update({ page_id: p.pageId, properties: ofIdProp(ofId) as any });
     console.log(`  ✓ create OF     ${p.title}  (OF ID ${ofId})`);
+  }
+}
+
+export async function migrateTasks(notion: Client, config: Config, of: OFSnapshot, n: NotionSnapshot, write: boolean): Promise<void> {
+  const plan = planTasks(of, n);
+  const byStatus = (status: string) => plan.creates.filter((c) => c.task.status === status).length;
+  const subtasks = plan.creates.filter((c) => c.task.parentTaskId).length;
+
+  console.log(`Already in Notion: ${plan.alreadyDone}`);
+  console.log(`Create in Notion: ${plan.creates.length} (${byStatus("active")} open, ${byStatus("completed")} completed, ` +
+    `${byStatus("dropped")} dropped; ${subtasks} subtasks, created after their parents)`);
+  for (const l of plan.links) console.log(`  link  ${l.task.name}  ↔  Notion "${l.notion.title}"  (write OF ID)`);
+  for (const t of plan.notionOnly) console.log(`  Notion-only "${t.title}": left for the sync engine to create in OmniFocus`);
+  if (plan.unlinkedProjects.length) {
+    console.log(`Projects not linked yet (${plan.unlinkedProjects.length}); run \`migrate match-projects --apply … --write\` first:`);
+    console.log(`  ${plan.unlinkedProjects.join(", ")}`);
+  }
+
+  if (plan.errors.length) console.log(["Problems (block --write):", ...plan.errors.map((e) => `  ✗ ${e}`)].join("\n"));
+
+  if (!write) return console.log("\nDry run. Re-run with --write on the sync host to apply.");
+  if (plan.errors.length) throw new Error("Fix the problems above first; nothing written.");
+  if (hasGap(missingSchema(n.tasksSchema, requiredTaskProps(config)))) {
+    throw new Error("Tasks schema is incomplete. Run `migrate schema --write` first.");
+  }
+  if (plan.unlinkedProjects.length) throw new Error("Some projects aren't linked yet; nothing written.");
+
+  for (const l of plan.links) {
+    await notion.pages.update({ page_id: l.notion.pageId, properties: ofIdProp(l.task.id) as any });
+    console.log(`  ✓ linked ${l.task.name}`);
+  }
+
+  // Sequential on purpose: parents must exist before subtasks, and Notion allows ~3 req/s.
+  const createdPage = new Map<string, string>();
+  let done = 0;
+  for (const c of plan.creates) {
+    const parentPageId = c.parentPageId ?? (c.parentOfId ? createdPage.get(c.parentOfId) ?? null : null);
+    const page = await notion.pages.create({
+      parent: { data_source_id: config.notion.tasksDataSourceId },
+      properties: taskToNotionProps(c.task, config, { projectPageId: c.projectPageId, parentPageId }) as any,
+    });
+    createdPage.set(c.task.id, page.id);
+    if (++done % 25 === 0 || done === plan.creates.length) console.log(`  ✓ ${done}/${plan.creates.length} tasks created`);
   }
 }
