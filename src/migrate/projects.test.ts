@@ -106,3 +106,10 @@ test("createInOmniFocus never duplicates or steals a same-name OmniFocus project
   });
   assert.match(stolen.errors.join("\n"), /already has "ivan-jekyll", linked to Notion/);
 });
+
+test("createInOmniFocus refuses when a same-name project exists outside the sync scope", () => {
+  const of = { ...ofSnap([]), outOfScopeProjects: [{ id: "old", name: "dotfiles", status: "done" as const, folderPath: [] }] };
+  const plan = planApply({ link: [], createInNotion: [], createInOmniFocus: [{ id: "n1", name: "dotfiles" }] }, of, notionSnap([notionProject("n1", "dotfiles")]));
+  assert.deepEqual(plan.ops, []);
+  assert.match(plan.errors[0], /already has "dotfiles" \(done\) outside the sync scope/);
+});

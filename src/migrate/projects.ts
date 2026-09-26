@@ -97,6 +97,7 @@ export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnap
     // A same-name OmniFocus project means either a wrong proposal or a run that created the
     // project but died before writing its OF ID to Notion. Never create a duplicate.
     const sameName = of.projects.filter((a) => normalizeName(a.name) === normalizeName(b.title));
+    const hidden = (of.outOfScopeProjects ?? []).filter((a) => normalizeName(a.name) === normalizeName(b.title));
     const linked = sameName.find((a) => linkedOfIds.has(a.id));
     const recoverable = sameName.filter((a) => !linkedOfIds.has(a.id) && !a.folderPath.length && !seenOf.has(a.id));
     if (linked) {
@@ -106,6 +107,10 @@ export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnap
       plan.ops.push({ kind: "link", of: recoverable[0], notion: b });
     } else if (sameName.length) {
       plan.errors.push(`OmniFocus already has project(s) named "${b.title}"; list the right one under "link" instead`);
+    } else if (hidden.length) {
+      const h = hidden[0];
+      plan.errors.push(`OmniFocus already has "${h.name}" (${h.status}${h.folderPath.length ? `, in ${h.folderPath.join(" / ")}` : ""}) outside the sync scope; ` +
+        `reopen it in OmniFocus so it can be linked, rename one of them, or leave "${b.title}" out of the proposal`);
     } else {
       plan.ops.push({ kind: "createInOmniFocus", notion: b });
     }

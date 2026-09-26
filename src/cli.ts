@@ -64,6 +64,14 @@ async function main() {
   const [command, sub] = positionals;
   if (values.help || !command) return console.log(USAGE);
 
+  // `npm run nos migrate tasks --write` (no `--`) hands --write to npm, which only warns and
+  // exposes it as npm_config_write. Refuse rather than silently doing a dry run.
+  const swallowed = ["write", "apply", "json"].filter((f) => process.env[`npm_config_${f}`] !== undefined);
+  if (swallowed.length) {
+    throw new Error(`npm took ${swallowed.map((f) => `--${f}`).join(", ")} for itself. Put options after \`--\`:\n` +
+      `  npm run nos ${positionals.join(" ")} -- ${swallowed.map((f) => `--${f}`).join(" ")}`);
+  }
+
   if (values.write && command === "migrate" && sub === "match-projects" && !values.apply) {
     throw new Error("--write needs --apply <reviewed proposal file>");
   }

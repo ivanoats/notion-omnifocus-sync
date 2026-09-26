@@ -35,12 +35,17 @@
 
   const projects = [];
   const projectIds = new Set();
+  // Every project outside the sync scope (excluded folders, long-finished), by name only,
+  // so migrations never create a same-name duplicate of something they can't see.
+  const outOfScopeProjects = [];
   for (const p of flattenedProjects) {
     const path = folderPath(p.parentFolder);
-    if (path.some((name) => exclude.has(name))) continue;
     const status = projectStatus(p);
     const completedAt = p.completionDate || p.task.dropDate || null;
-    if (!recent(status, completedAt)) continue;
+    if (path.some((name) => exclude.has(name)) || !recent(status, completedAt)) {
+      outOfScopeProjects.push({ id: p.id.primaryKey, name: p.name, status, folderPath: path });
+      continue;
+    }
     projectIds.add(p.id.primaryKey);
     projects.push({
       id: p.id.primaryKey,
@@ -83,5 +88,5 @@
     });
   }
 
-  return JSON.stringify({ exportedAt: new Date().toISOString(), projects, tasks });
+  return JSON.stringify({ exportedAt: new Date().toISOString(), projects, outOfScopeProjects, tasks });
 })
