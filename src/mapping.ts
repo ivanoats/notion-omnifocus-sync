@@ -28,10 +28,15 @@ export function projectStatusFromNotion(status: string | null): OFProjectStatus 
 // Notion caps each rich-text item at 2000 characters and a property at 100 items.
 const RICH_TEXT_ITEM = 2000;
 const RICH_TEXT_ITEMS = 100;
+export const MAX_RICH_TEXT_CHARS = RICH_TEXT_ITEM * RICH_TEXT_ITEMS;
 
+/** Throws rather than truncating content Notion can't hold. */
 export function richText(content: string) {
+  if (content.length > MAX_RICH_TEXT_CHARS) {
+    throw new RangeError(`Text of ${content.length} characters exceeds Notion's ${MAX_RICH_TEXT_CHARS}-character limit`);
+  }
   const items: { text: { content: string } }[] = [];
-  for (let i = 0; i < content.length && items.length < RICH_TEXT_ITEMS; i += RICH_TEXT_ITEM) {
+  for (let i = 0; i < content.length; i += RICH_TEXT_ITEM) {
     items.push({ text: { content: content.slice(i, i + RICH_TEXT_ITEM) } });
   }
   return { rich_text: items };
@@ -68,7 +73,8 @@ export function taskStatusToNotion(status: OFTaskStatus, current: string | null 
 export function splitTags(tags: string[], config: Config): { tags: string[]; priority: string | null } {
   const prefix = `${config.omnifocus.priorityTagParent} : `;
   const allow = new Set(config.tagAllowlist);
-  const priority = tags.find((t) => t.startsWith(prefix))?.slice(prefix.length) ?? null;
+  // Only allowlisted priority tags map to the Priority select; others (e.g. "Priority : Critical") are ignored.
+  const priority = tags.find((t) => t.startsWith(prefix) && allow.has(t))?.slice(prefix.length) ?? null;
   return { tags: tags.filter((t) => allow.has(t) && !t.startsWith(prefix)), priority };
 }
 

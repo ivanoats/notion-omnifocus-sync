@@ -57,3 +57,33 @@ test("tasks whose project isn't linked yet are reported", () => {
   assert.deepEqual(plan.unlinkedProjects, ["Blue Star"]);
   assert.equal(plan.creates[0].projectPageId, null);
 });
+
+test("links need an exact, unique name; near-misses and duplicates are not linked", () => {
+  const plan = planTasks(
+    snap([task("t1", "Call Discount Tire"), task("t2", "Buy rope"), task("t3", "Buy rope")]),
+    nsnap([notionTask("n1", "Call Discount Tire to confirm tire is in stock"), notionTask("n2", "Buy rope")], [project("np1", "p1")]),
+  );
+  assert.deepEqual(plan.links, []);
+  assert.deepEqual(plan.notionOnly.map((t) => t.pageId), ["n1"]);
+  assert.match(plan.errors.join("\n"), /Ambiguous name "Buy rope": 1 Notion and 2 OmniFocus/);
+});
+
+test("a subtask whose parent is linked in the same run gets the parent's page", () => {
+  const plan = planTasks(
+    snap([task("g1", "Haul out"), task("c1", "Book the yard", { parentTaskId: "g1" })]),
+    nsnap([notionTask("ng1", "Haul out")], [project("np1", "p1")]),
+  );
+  assert.deepEqual(plan.links.map((l) => [l.task.id, l.notion.pageId]), [["g1", "ng1"]]);
+  assert.deepEqual(plan.creates.map((c) => [c.task.id, c.parentPageId]), [["c1", "ng1"]]);
+});
+
+test("unlinked projects are reported even when every task is already in Notion", () => {
+  const plan = planTasks(snap([task("t1", "x")]), nsnap([notionTask("n1", "x", "t1")], [project("np1", null)]));
+  assert.equal(plan.creates.length, 0);
+  assert.deepEqual(plan.unlinkedProjects, ["Blue Star"]);
+});
+
+test("a note too long for Notion is an error, not a silent truncation", () => {
+  const plan = planTasks(snap([task("t1", "huge", { note: "x".repeat(200_001) })]), nsnap([], [project("np1", "p1")]));
+  assert.match(plan.errors.join("\n"), /200001-character note/);
+});

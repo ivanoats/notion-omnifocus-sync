@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { Config } from "./config.ts";
-import { projectStatusFromNotion, projectStatusToNotion, projectToNotionProps, richText, taskStatusToNotion, taskToNotionProps } from "./mapping.ts";
+import { projectStatusFromNotion, projectStatusToNotion, projectToNotionProps, richText, splitTags, taskStatusToNotion, taskToNotionProps } from "./mapping.ts";
 
 test("project status maps both ways and keeps Notion's finer active state", () => {
   assert.equal(projectStatusToNotion("active"), "In progress");
@@ -33,6 +33,14 @@ test("richText chunks long notes into 2000-character items", () => {
   const { rich_text } = richText("x".repeat(4500));
   assert.deepEqual(rich_text.map((r) => r.text.content.length), [2000, 2000, 500]);
   assert.deepEqual(richText("").rich_text, []);
+  assert.equal(richText("x".repeat(200_000)).rich_text.length, 100);
+  assert.throws(() => richText("x".repeat(200_001)), RangeError);
+});
+
+test("only allowlisted priority tags become Priority", () => {
+  const config = { omnifocus: { priorityTagParent: "Priority" }, tagAllowlist: ["Priority : High"] } as Config;
+  assert.deepEqual(splitTags(["Priority : Critical"], config), { tags: [], priority: null });
+  assert.deepEqual(splitTags(["Priority : Critical", "Priority : High"], config), { tags: [], priority: "High" });
 });
 
 test("task status keeps Notion's finer active states", () => {

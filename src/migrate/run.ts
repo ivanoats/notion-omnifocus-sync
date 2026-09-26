@@ -108,7 +108,10 @@ export async function migrateTasks(notion: Client, config: Config, of: OFSnapsho
     console.log(`  ${plan.unlinkedProjects.join(", ")}`);
   }
 
+  if (plan.errors.length) console.log(["Problems (block --write):", ...plan.errors.map((e) => `  ✗ ${e}`)].join("\n"));
+
   if (!write) return console.log("\nDry run. Re-run with --write on the sync host to apply.");
+  if (plan.errors.length) throw new Error("Fix the problems above first; nothing written.");
   if (hasGap(missingSchema(n.tasksSchema, requiredTaskProps(config)))) {
     throw new Error("Tasks schema is incomplete. Run `migrate schema --write` first.");
   }
