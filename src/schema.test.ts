@@ -55,7 +55,7 @@ test("missingSchema flags a relation that points at the wrong data source", () =
 });
 
 test("assertWriteHost only allows the configured sync host", () => {
-  const config = { syncHost: "taxis-brevifolia" } as Config;
-  assert.doesNotThrow(() => assertWriteHost(config, "taxis-brevifolia"));
-  assert.throws(() => assertWriteHost(config, "tupso"), /only runs on taxis-brevifolia/);
+  const config = { syncHost: "taxus-brevifolia" } as Config;
+  assert.doesNotThrow(() => assertWriteHost(config, "taxus-brevifolia"));
+  assert.throws(() => assertWriteHost(config, "tupso"), /only runs on taxus-brevifolia/);
 });

@@ -12,7 +12,16 @@ async function keychainToken(service: string): Promise<string> {
     const { stdout } = await run("security", ["find-generic-password", "-s", service, "-a", "notion", "-w"]);
     return stdout.trim();
   } catch (err) {
-    throw new Error(`No Notion token in the Keychain under service "${service}".`, { cause: err });
+    const { code, stderr } = err as { code?: number; stderr?: string };
+    const detail = (stderr ?? "").trim();
+    // 44 = errSecItemNotFound. 36/51 and "interaction" errors mean the keychain is locked,
+    // which is normal in an SSH session (SSH logins don't unlock the login keychain).
+    const hint = code === 44
+      ? `Add it with: security add-generic-password -U -s ${service} -a notion -w`
+      : /interaction|locked/i.test(detail) || code === 36 || code === 51
+        ? "The login keychain is locked (normal over SSH). Run: security unlock-keychain ~/Library/Keychains/login.keychain-db"
+        : "";
+    throw new Error(`Couldn't read the Notion token from the Keychain (service "${service}", exit ${code}): ${detail}\n${hint}`.trim(), { cause: err });
   }
 }
 

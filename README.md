@@ -29,7 +29,15 @@ npm run nos migrate tasks               # show which OmniFocus tasks would becom
 npm test && npm run typecheck
 ```
 
-## First-time migration (on taxis-brevifolia)
+## First-time migration (on taxus-brevifolia)
+
+Over SSH, unlock the login keychain first. SSH logins leave it locked, so the Notion token can't be read:
+
+```sh
+security unlock-keychain ~/Library/Keychains/login.keychain-db
+```
+
+Then:
 
 ```sh
 git pull && npm ci

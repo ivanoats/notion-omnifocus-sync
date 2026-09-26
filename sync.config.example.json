@@ -1,5 +1,5 @@
 {
-  "syncHost": "taxis-brevifolia",
+  "syncHost": "taxus-brevifolia",
   "notion": {
     "apiVersion": "2026-03-11",
     "tokenKeychainService": "notion-omnifocus-sync",

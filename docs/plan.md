@@ -7,7 +7,7 @@ Two-way sync between OmniFocus and the existing Notion **Tasks** and **Projects*
 | Question | Decision |
 |---|---|
 | Direction | True two-way, merged field by field |
-| Sync host | `taxis-brevifolia` (the Mac mini at home). Write mode refuses to run on any other host. |
+| Sync host | `taxus-brevifolia` (the Mac mini at home). Write mode refuses to run on any other host. |
 | Scope | All OmniFocus projects except those in the `Lululemon` folder. All 41 sync, including life-area projects (Home, Family, …). The OmniFocus inbox is **not** synced: it's for triage, and its notes often hold forwarded email. |
 | Priority | Notion `Priority` ↔ OmniFocus tags `Priority : High / Medium / Low` |
 | Tags | Top 20 only (see [Tag allowlist](#tag-allowlist)). OmniFocus tags outside the list are never touched. |
@@ -114,7 +114,7 @@ Every step runs with `--dry-run` by default and is idempotent.
 4. `migrate tasks`: create Notion pages for open in-scope OmniFocus tasks (plus anything completed in the last 30 days), parents before subtasks. Existing Notion tasks without an `OF ID` are linked when an OmniFocus task has the same name. The rest stay Notion-only until the sync engine creates them in OmniFocus. `--write` refuses to run until the Tasks schema is complete and every task's project is linked.
 5. `status`: must report zero drift before `sync` is enabled.
 
-## Running on taxis-brevifolia
+## Running on taxus-brevifolia
 
 - Use a LaunchAgent (not a LaunchDaemon) in the logged-in GUI session, running every 10 minutes. OmniFocus opens at login.
 - Grant the TCC Automation permission (node/osascript → OmniFocus) once, in person at the mini.
@@ -129,4 +129,4 @@ Every step runs with `--dry-run` by default and is idempotent.
 1. Read-only: `backup` + `status`.
 2. Migration: `migrate schema`, `migrate match-projects`, `migrate tasks`.
 3. Two-way `sync` engine with tests.
-4. LaunchAgent, logging, error notifications on taxis-brevifolia.
+4. LaunchAgent, logging, error notifications on taxus-brevifolia.

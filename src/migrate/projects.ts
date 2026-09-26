@@ -43,7 +43,7 @@ export function propose(of: OFSnapshot, notion: NotionSnapshot, overrides: { omn
 const HEADER = `# Project matching proposal. Review before applying:
 #   - delete a "link" entry that is wrong (then list each side under a create list, or leave it out to skip)
 #   - move entries between lists as needed; anything not listed is left alone
-# Apply on taxis-brevifolia with:
+# Apply on taxus-brevifolia with:
 #   npm run nos migrate match-projects -- --apply links.proposed.yaml --write
 `;
 
