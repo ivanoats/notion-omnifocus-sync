@@ -57,7 +57,7 @@ export async function applyProjects(
   const schemaGap = missingSchema(n.projectsSchema, requiredProjectProps(folderNames(of)));
   if (write && hasGap(schemaGap)) throw new Error("Projects schema is incomplete. Run `migrate schema --write` first.");
 
-  const plan = planApply(parseProposal(await readFile(file, "utf8")), of, n);
+  const plan = planApply(parseProposal(await readFile(file, "utf8")), of, n, config.omnifocus.excludeFolders);
   if (plan.errors.length) {
     console.error(["Proposal has problems; nothing applied:", ...plan.errors.map((e) => `  ✗ ${e}`)].join("\n"));
     process.exitCode = 1;

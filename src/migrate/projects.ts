@@ -54,7 +54,7 @@ export function parseProposal(text: string): Proposal {
   return { link: p.link ?? [], createInNotion: p.createInNotion ?? [], createInOmniFocus: p.createInOmniFocus ?? [] };
 }
 
-export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnapshot): ApplyPlan {
+export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnapshot, excludeFolders: string[] = []): ApplyPlan {
   const ofById = new Map(of.projects.map((p) => [p.id, p]));
   const notionById = new Map(liveProjects(notion).map((p) => [p.pageId, p]));
   const linkedOfIds = new Map(liveProjects(notion).filter((p) => p.ofId).map((p) => [p.ofId!, p]));
@@ -97,6 +97,7 @@ export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnap
     // A same-name OmniFocus project means either a wrong proposal or a run that created the
     // project but died before writing its OF ID to Notion. Never create a duplicate.
     const sameName = of.projects.filter((a) => normalizeName(a.name) === normalizeName(b.title));
+    const hidden = (of.outOfScopeProjects ?? []).filter((a) => normalizeName(a.name) === normalizeName(b.title));
     const linked = sameName.find((a) => linkedOfIds.has(a.id));
     const recoverable = sameName.filter((a) => !linkedOfIds.has(a.id) && !a.folderPath.length && !seenOf.has(a.id));
     if (linked) {
@@ -106,6 +107,15 @@ export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnap
       plan.ops.push({ kind: "link", of: recoverable[0], notion: b });
     } else if (sameName.length) {
       plan.errors.push(`OmniFocus already has project(s) named "${b.title}"; list the right one under "link" instead`);
+    } else if (hidden.length) {
+      const h = hidden[0];
+      const excluded = h.folderPath.find((f) => excludeFolders.includes(f));
+      const bringBack = [
+        excluded && `move it out of the excluded "${excluded}" folder`,
+        (h.status === "done" || h.status === "dropped") && "reopen it",
+      ].filter(Boolean).join(" and ");
+      plan.errors.push(`OmniFocus already has "${h.name}" (${h.status}${h.folderPath.length ? `, in ${h.folderPath.join(" / ")}` : ""}) outside the sync scope. ` +
+        `To link it, ${bringBack} in OmniFocus and re-run the proposal; otherwise rename one of them or leave "${b.title}" out of the proposal.`);
     } else {
       plan.ops.push({ kind: "createInOmniFocus", notion: b });
     }

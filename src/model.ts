@@ -37,6 +37,8 @@ export interface OFProject {
 export interface OFSnapshot {
   exportedAt: string;
   projects: OFProject[];
+  /** Projects outside the sync scope, used only to avoid creating same-name duplicates. */
+  outOfScopeProjects?: Pick<OFProject, "id" | "name" | "status" | "folderPath">[];
   tasks: OFTask[];
 }
 
