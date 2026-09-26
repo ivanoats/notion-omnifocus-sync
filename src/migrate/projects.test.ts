@@ -69,3 +69,40 @@ test("planApply produces link and create ops for fresh items", () => {
   const plan = planApply(propose(of, n, []), of, n);
   assert.deepEqual(plan.ops.map((op) => op.kind), ["link", "createInNotion", "createInOmniFocus"]);
 });
+
+test("createInOmniFocus never duplicates or steals a same-name OmniFocus project", () => {
+  const n = notionSnap([
+    notionProject("n1", "Rendition"),
+    notionProject("n2", "dotfiles"),
+    notionProject("n3", "ivan-jekyll", "o3"),
+    notionProject("n4", "ivan-jekyll copy"),
+  ]);
+  const of = ofSnap([
+    ofProject("o1", "Rendition"), // left behind by an interrupted run: top-level, unlinked
+    ofProject("o3", "ivan-jekyll"), // already linked to n3
+    ofProject("o4", "dotfiles"),
+    { ...ofProject("o5", "dotfiles"), folderPath: ["nerd"] }, // two candidates: ambiguous
+  ]);
+  const plan = planApply(
+    {
+      link: [],
+      createInNotion: [],
+      createInOmniFocus: [
+        { id: "n1", name: "Rendition" },
+        { id: "n2", name: "dotfiles" },
+        { id: "n4", name: "ivan-jekyll copy" },
+      ],
+    },
+    of,
+    n,
+  );
+  assert.deepEqual(plan.ops.map((op) => [op.kind, op.kind === "link" ? op.of.id : ""]), [["link", "o1"], ["createInOmniFocus", ""]]);
+  assert.equal(plan.errors.length, 1);
+  assert.match(plan.errors[0], /named "dotfiles"/);
+
+  const stolen = planApply({ link: [], createInNotion: [], createInOmniFocus: [{ id: "n4", name: "x" }] }, of, {
+    ...n,
+    projects: [notionProject("n3", "ivan-jekyll", "o3"), notionProject("n4", "ivan-jekyll")],
+  });
+  assert.match(stolen.errors.join("\n"), /already has "ivan-jekyll", linked to Notion/);
+});

@@ -49,6 +49,12 @@ export function missingSchema(actual: NotionSchema, required: RequiredProp[]): S
       gap.missing.push(req);
     } else if (have.type !== req.type) {
       gap.wrongType.push({ name: req.name, expected: req.type, actual: have.type });
+    } else if (req.relationTo && normalizeId(have.relationTo) !== normalizeId(req.relationTo)) {
+      gap.wrongType.push({
+        name: req.name,
+        expected: `relation → ${req.relationTo}`,
+        actual: `relation → ${have.relationTo ?? "unknown"}`,
+      });
     } else if (req.options?.length) {
       const absent = req.options.filter((o) => !have.options?.includes(o));
       if (absent.length) gap.missingOptions.push({ name: req.name, type: req.type, options: absent });
@@ -56,6 +62,8 @@ export function missingSchema(actual: NotionSchema, required: RequiredProp[]): S
   }
   return gap;
 }
+
+const normalizeId = (id: string | undefined) => id?.replace(/-/g, "").toLowerCase();
 
 export const hasGap = (g: SchemaGap) => g.missing.length + g.missingOptions.length + g.wrongType.length > 0;
 

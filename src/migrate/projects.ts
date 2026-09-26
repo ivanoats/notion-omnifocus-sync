@@ -1,5 +1,5 @@
 import { parse, stringify } from "yaml";
-import { matchByName } from "../match.ts";
+import { matchByName, normalizeName } from "../match.ts";
 import type { NotionProjectRow, NotionSnapshot, OFProject, OFSnapshot } from "../model.ts";
 
 // Pure half of `migrate match-projects`: build a reviewable proposal, then turn a
@@ -92,8 +92,23 @@ export function planApply(proposal: Proposal, of: OFSnapshot, notion: NotionSnap
     const b = notionById.get(ref.id);
     if (!b) { plan.errors.push(`Notion project "${ref.name}" (${ref.id}) not found`); continue; }
     claim(seenNotion, b.pageId, `Notion project "${b.title}"`);
-    if (b.ofId) plan.alreadyDone.push(`${b.title} (already in OmniFocus)`);
-    else plan.ops.push({ kind: "createInOmniFocus", notion: b });
+    if (b.ofId) { plan.alreadyDone.push(`${b.title} (already in OmniFocus)`); continue; }
+
+    // A same-name OmniFocus project means either a wrong proposal or a run that created the
+    // project but died before writing its OF ID to Notion. Never create a duplicate.
+    const sameName = of.projects.filter((a) => normalizeName(a.name) === normalizeName(b.title));
+    const linked = sameName.find((a) => linkedOfIds.has(a.id));
+    const recoverable = sameName.filter((a) => !linkedOfIds.has(a.id) && !a.folderPath.length && !seenOf.has(a.id));
+    if (linked) {
+      plan.errors.push(`OmniFocus already has "${linked.name}", linked to Notion "${linkedOfIds.get(linked.id)!.title}"; can't also create it for Notion "${b.title}"`);
+    } else if (sameName.length === 1 && recoverable.length === 1) {
+      claim(seenOf, recoverable[0].id, `OmniFocus project "${recoverable[0].name}"`);
+      plan.ops.push({ kind: "link", of: recoverable[0], notion: b });
+    } else if (sameName.length) {
+      plan.errors.push(`OmniFocus already has project(s) named "${b.title}"; list the right one under "link" instead`);
+    } else {
+      plan.ops.push({ kind: "createInOmniFocus", notion: b });
+    }
   }
 
   return plan;

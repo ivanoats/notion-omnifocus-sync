@@ -9,13 +9,9 @@
     dropped: Project.Status.Dropped,
   };
   const created = {};
+  // No reuse-by-name here: planApply already turns a same-name project left by an
+  // interrupted run into a link, and rejects anything ambiguous.
   for (const p of params.projects) {
-    // Idempotent: if an earlier run created it but failed before Notion got the OF ID, reuse it.
-    const existing = flattenedProjects.find((x) => x.name === p.name);
-    if (existing) {
-      created[p.key] = existing.id.primaryKey;
-      continue;
-    }
     const project = new Project(p.name);
     if (p.deferDate) project.deferDate = new Date(p.deferDate);
     if (p.dueDate) project.dueDate = new Date(p.dueDate);

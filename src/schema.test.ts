@@ -46,6 +46,14 @@ test("schemaPatch builds configs for new properties and never patches type clash
   assert.deepEqual(gap.wrongType, [{ name: "Flagged", expected: "checkbox", actual: "rich_text" }]);
 });
 
+test("missingSchema flags a relation that points at the wrong data source", () => {
+  const req = [{ name: "Parent Task", type: "relation", relationTo: "364f0de1-d4db-48d9-844b-5230e96c216d" }];
+  assert.equal(missingSchema({ "Parent Task": { type: "relation", relationTo: "364f0de1d4db48d9844b5230e96c216d" } }, req).wrongType.length, 0);
+  assert.deepEqual(missingSchema({ "Parent Task": { type: "relation", relationTo: "other" } }, req).wrongType, [
+    { name: "Parent Task", expected: "relation → 364f0de1-d4db-48d9-844b-5230e96c216d", actual: "relation → other" },
+  ]);
+});
+
 test("assertWriteHost only allows the configured sync host", () => {
   const config = { syncHost: "taxis-brevifolia" } as Config;
   assert.doesNotThrow(() => assertWriteHost(config, "taxis-brevifolia"));
