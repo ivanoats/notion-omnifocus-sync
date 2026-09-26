@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { statSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
@@ -21,6 +22,8 @@ Migrations (dry-run unless --write; --write only runs on the sync host and backs
   migrate match-projects --apply <file> [--write]
                                     Link, or create, projects from a reviewed proposal
   migrate tasks [--write]           Create Notion pages for in-scope OmniFocus tasks (after projects)`;
+
+const isFile = (path: string) => statSync(path, { throwIfNoEntry: false })?.isFile() ?? false;
 
 async function snapshots(notion: Client, config: Config) {
   const [of, n] = await Promise.all([
@@ -63,6 +66,9 @@ async function main() {
 
   if (values.write && command === "migrate" && sub === "match-projects" && !values.apply) {
     throw new Error("--write needs --apply <reviewed proposal file>");
+  }
+  if (command === "migrate" && sub === "match-projects" && values.apply && !isFile(values.apply)) {
+    throw new Error(`${values.apply} is not a proposal file. Create it first with: npm run nos migrate match-projects`);
   }
   const config = loadConfig();
   const notion = await notionClient(config);
