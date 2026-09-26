@@ -72,7 +72,12 @@ export function toSchema(properties: Props): NotionSchema {
   const schema: NotionSchema = {};
   for (const [name, prop] of Object.entries(properties)) {
     const opts = prop[prop.type]?.options as { name: string }[] | undefined;
-    schema[name] = opts ? { type: prop.type, options: opts.map((o) => o.name) } : { type: prop.type };
+    const target = prop.type === "relation" ? (prop.relation?.data_source_id as string | undefined) : undefined;
+    schema[name] = {
+      type: prop.type,
+      ...(opts && { options: opts.map((o) => o.name) }),
+      ...(target && { relationTo: target }),
+    };
   }
   return schema;
 }

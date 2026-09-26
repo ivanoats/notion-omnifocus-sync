@@ -53,12 +53,17 @@ test("toProjectRow reads status-type Status and OF ID", () => {
   assert.equal(row.inTrash, true);
 });
 
-test("toSchema keeps option names for select and status", () => {
+test("toSchema keeps option names and relation targets", () => {
   assert.deepEqual(
     toSchema({
       Status: { type: "select", select: { options: [{ name: "To Do" }, { name: "Done" }] } },
       Notes: { type: "rich_text", rich_text: {} },
+      Parent: { type: "relation", relation: { data_source_id: "ds1", type: "single_property" } },
     }),
-    { Status: { type: "select", options: ["To Do", "Done"] }, Notes: { type: "rich_text" } },
+    {
+      Status: { type: "select", options: ["To Do", "Done"] },
+      Notes: { type: "rich_text" },
+      Parent: { type: "relation", relationTo: "ds1" },
+    },
   );
 });

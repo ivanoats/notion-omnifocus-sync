@@ -16,7 +16,8 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@notionhq/client": "^5.26.0"
+    "@notionhq/client": "^5.26.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",

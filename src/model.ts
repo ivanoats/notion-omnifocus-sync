@@ -69,8 +69,8 @@ export interface NotionProjectRow {
   inTrash: boolean;
 }
 
-/** Property name → type (plus option names for select/status). */
-export type NotionSchema = Record<string, { type: string; options?: string[] }>;
+/** Property name → type (plus option names for select/status, target data source for relations). */
+export type NotionSchema = Record<string, { type: string; options?: string[]; relationTo?: string }>;
 
 export interface NotionSnapshot {
   exportedAt: string;

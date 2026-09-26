@@ -1,7 +1,7 @@
 import type { Config } from "./config.ts";
 import { matchByName } from "./match.ts";
 import type { NotionSnapshot, OFSnapshot } from "./model.ts";
-import { missingSchema, REQUIRED_PROJECT_PROPS, REQUIRED_TASK_PROPS, type SchemaGap } from "./schema.ts";
+import { missingSchema, requiredProjectProps, requiredTaskProps, type SchemaGap } from "./schema.ts";
 
 // Pure pre-migration status report. Once the state DB exists this grows a drift section.
 
@@ -17,6 +17,9 @@ export interface StatusReport {
   schema: { tasks: SchemaGap; projects: SchemaGap };
   warnings: string[];
 }
+
+export const folderNames = (of: OFSnapshot) =>
+  [...new Set(of.projects.filter((p) => p.folderPath.length).map((p) => p.folderPath.join(" / ")))].sort();
 
 export function buildStatus(of: OFSnapshot, notion: NotionSnapshot, config: Config): StatusReport {
   const open = of.tasks.filter((t) => t.status === "active");
@@ -61,8 +64,8 @@ export function buildStatus(of: OFSnapshot, notion: NotionSnapshot, config: Conf
       allowlistedUnused: config.tagAllowlist.filter((g) => !inUse.has(g)),
     },
     schema: {
-      tasks: missingSchema(notion.tasksSchema, REQUIRED_TASK_PROPS),
-      projects: missingSchema(notion.projectsSchema, REQUIRED_PROJECT_PROPS),
+      tasks: missingSchema(notion.tasksSchema, requiredTaskProps(config)),
+      projects: missingSchema(notion.projectsSchema, requiredProjectProps(folderNames(of))),
     },
     warnings,
   };

@@ -2,19 +2,26 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
-import { loadConfig, type Config } from "./config.ts";
-import { notionClient, exportNotion } from "./notion/client.ts";
+import type { Client } from "@notionhq/client";
+import { assertWriteHost, loadConfig, type Config } from "./config.ts";
+import { applyProjects, migrateSchema, proposeProjects } from "./migrate/run.ts";
+import { exportNotion, notionClient } from "./notion/client.ts";
 import { exportOmniFocus } from "./omnifocus/bridge.ts";
 import { buildStatus, formatStatus } from "./report.ts";
 
-const USAGE = `Usage: nos <command> [--json]
+const USAGE = `Usage: nos <command> [options]
 
-Commands (all read-only):
-  backup   Write OmniFocus and Notion snapshots to backups/<timestamp>/
-  status   Compare both sides and list the migration work still to do`;
+Read-only:
+  status [--json]                   Compare both sides; list the migration work still to do
+  backup                            Write OmniFocus and Notion snapshots to backups/<timestamp>/
 
-async function snapshots(config: Config) {
-  const notion = await notionClient(config);
+Migrations (dry-run unless --write; --write only runs on the sync host and backs up first):
+  migrate schema [--write]          Add the Notion properties/options the sync needs
+  migrate match-projects            Write links.proposed.yaml for review
+  migrate match-projects --apply <file> [--write]
+                                    Link, or create, projects from a reviewed proposal`;
+
+async function snapshots(notion: Client, config: Config) {
   const [of, n] = await Promise.all([
     exportOmniFocus({
       excludeFolders: config.omnifocus.excludeFolders,
@@ -25,40 +32,64 @@ async function snapshots(config: Config) {
   return { of, notion: n };
 }
 
-async function backup(config: Config) {
-  const { of, notion } = await snapshots(config);
+async function backup(notion: Client, config: Config): Promise<string> {
+  const { of, notion: n } = await snapshots(notion, config);
   const dir = join("backups", new Date().toISOString().replace(/[:.]/g, "-"));
   await mkdir(dir, { recursive: true });
-  const { raw, ...rows } = notion;
+  const { raw, ...rows } = n;
   await Promise.all([
     writeFile(join(dir, "omnifocus.json"), JSON.stringify(of, null, 2)),
     writeFile(join(dir, "notion.json"), JSON.stringify(rows, null, 2)),
     writeFile(join(dir, "notion-raw.json"), JSON.stringify(raw, null, 2)),
   ]);
-  console.log(`Wrote ${of.projects.length} OF projects, ${of.tasks.length} OF tasks, ` +
-    `${notion.projects.length} Notion projects, ${notion.tasks.length} Notion tasks to ${dir}/`);
-  console.log("OmniFocus keeps its own database backups too: File ▸ Back Up Database / Help ▸ Backups.");
-}
-
-async function status(config: Config, json: boolean) {
-  const { of, notion } = await snapshots(config);
-  const report = buildStatus(of, notion, config);
-  console.log(json ? JSON.stringify(report, null, 2) : formatStatus(report));
+  console.log(`Backed up ${of.projects.length} OF projects, ${of.tasks.length} OF tasks, ` +
+    `${n.projects.length} Notion projects, ${n.tasks.length} Notion tasks to ${dir}/`);
+  return dir;
 }
 
 async function main() {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { json: { type: "boolean", default: false }, help: { type: "boolean", short: "h" } },
+    options: {
+      json: { type: "boolean", default: false },
+      write: { type: "boolean", default: false },
+      apply: { type: "string" },
+      help: { type: "boolean", short: "h" },
+    },
   });
-  const [command] = positionals;
+  const [command, sub] = positionals;
   if (values.help || !command) return console.log(USAGE);
+
+  if (values.write && command === "migrate" && sub === "match-projects" && !values.apply) {
+    throw new Error("--write needs --apply <reviewed proposal file>");
+  }
   const config = loadConfig();
-  switch (command) {
-    case "backup": return backup(config);
-    case "status": return status(config, values.json);
+  const notion = await notionClient(config);
+  if (values.write) {
+    assertWriteHost(config);
+    await backup(notion, config);
+  }
+
+  switch (`${command} ${sub ?? ""}`.trim()) {
+    case "status": {
+      const { of, notion: n } = await snapshots(notion, config);
+      const report = buildStatus(of, n, config);
+      return console.log(values.json ? JSON.stringify(report, null, 2) : formatStatus(report));
+    }
+    case "backup":
+      if (!values.write) await backup(notion, config); // --write already backed up above
+      return;
+    case "migrate schema": {
+      const { of } = await snapshots(notion, config);
+      return migrateSchema(notion, config, of, values.write);
+    }
+    case "migrate match-projects": {
+      const { of, notion: n } = await snapshots(notion, config);
+      if (!values.apply) return proposeProjects(of, n, config, "links.proposed.yaml");
+      return applyProjects(notion, config, of, n, values.apply, values.write);
+    }
     default:
-      console.error(`Unknown command: ${command}\n\n${USAGE}`);
+      console.error(`Unknown command: ${command} ${sub ?? ""}\n\n${USAGE}`);
       process.exitCode = 2;
   }
 }
