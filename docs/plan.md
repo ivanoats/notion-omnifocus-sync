@@ -111,7 +111,7 @@ Every step runs with `--dry-run` by default and is idempotent.
 1. `backup`: dump both sides to `backups/<timestamp>/*.json` and make an OmniFocus backup.
 2. `migrate schema`: add the properties and options above if they're missing.
 3. `migrate match-projects`: match by `OF ID`, then `projectMatchOverrides` from config (e.g. `SustainableWebsites` ↔ `sustainablewebsites2`), then exact and fuzzy names. Writes `links.proposed.yaml` for review. Confirmed pairs get linked and their `OF ID` written. Unmatched items on either side are created on the other.
-4. `migrate tasks`: create Notion pages for open in-scope OmniFocus tasks (plus anything completed in the last 30 days). The 2 existing Notion tasks are linked by hand.
+4. `migrate tasks`: create Notion pages for open in-scope OmniFocus tasks (plus anything completed in the last 30 days), parents before subtasks. Existing Notion tasks without an `OF ID` are linked when an OmniFocus task has the same name. The rest stay Notion-only until the sync engine creates them in OmniFocus. `--write` refuses to run until the Tasks schema is complete and every task's project is linked.
 5. `status`: must report zero drift before `sync` is enabled.
 
 ## Running on taxis-brevifolia

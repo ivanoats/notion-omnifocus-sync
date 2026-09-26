@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { parseArgs } from "node:util";
 import type { Client } from "@notionhq/client";
 import { assertWriteHost, loadConfig, type Config } from "./config.ts";
-import { applyProjects, migrateSchema, proposeProjects } from "./migrate/run.ts";
+import { applyProjects, migrateSchema, migrateTasks, proposeProjects } from "./migrate/run.ts";
 import { exportNotion, notionClient } from "./notion/client.ts";
 import { exportOmniFocus } from "./omnifocus/bridge.ts";
 import { buildStatus, formatStatus } from "./report.ts";
@@ -19,7 +19,8 @@ Migrations (dry-run unless --write; --write only runs on the sync host and backs
   migrate schema [--write]          Add the Notion properties/options the sync needs
   migrate match-projects            Write links.proposed.yaml for review
   migrate match-projects --apply <file> [--write]
-                                    Link, or create, projects from a reviewed proposal`;
+                                    Link, or create, projects from a reviewed proposal
+  migrate tasks [--write]           Create Notion pages for in-scope OmniFocus tasks (after projects)`;
 
 async function snapshots(notion: Client, config: Config) {
   const [of, n] = await Promise.all([
@@ -87,6 +88,10 @@ async function main() {
       const { of, notion: n } = await snapshots(notion, config);
       if (!values.apply) return proposeProjects(of, n, config, "links.proposed.yaml");
       return applyProjects(notion, config, of, n, values.apply, values.write);
+    }
+    case "migrate tasks": {
+      const { of, notion: n } = await snapshots(notion, config);
+      return migrateTasks(notion, config, of, n, values.write);
     }
     default:
       console.error(`Unknown command: ${command} ${sub ?? ""}\n\n${USAGE}`);

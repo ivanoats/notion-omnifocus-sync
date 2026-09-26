@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { projectStatusFromNotion, projectStatusToNotion, projectToNotionProps } from "./mapping.ts";
+import type { Config } from "./config.ts";
+import { projectStatusFromNotion, projectStatusToNotion, projectToNotionProps, richText, taskStatusToNotion, taskToNotionProps } from "./mapping.ts";
 
 test("project status maps both ways and keeps Notion's finer active state", () => {
   assert.equal(projectStatusToNotion("active"), "In progress");
@@ -26,4 +27,40 @@ test("projectToNotionProps fills title, status, folder, dates and OF ID", () => 
     "End date": { date: null },
     "OF ID": { rich_text: [{ text: { content: "abc" } }] },
   });
+});
+
+test("richText chunks long notes into 2000-character items", () => {
+  const { rich_text } = richText("x".repeat(4500));
+  assert.deepEqual(rich_text.map((r) => r.text.content.length), [2000, 2000, 500]);
+  assert.deepEqual(richText("").rich_text, []);
+});
+
+test("task status keeps Notion's finer active states", () => {
+  assert.equal(taskStatusToNotion("active"), "To Do");
+  assert.equal(taskStatusToNotion("active", "Blocked"), "Blocked");
+  assert.equal(taskStatusToNotion("completed", "In Progress"), "Done");
+  assert.equal(taskStatusToNotion("dropped"), "Dropped");
+});
+
+test("taskToNotionProps maps allowlisted tags, priority tag, relations and OF ID", () => {
+  const config = {
+    omnifocus: { priorityTagParent: "Priority" },
+    tagAllowlist: ["website", "Priority : High"],
+  } as Config;
+  const props = taskToNotionProps(
+    {
+      id: "t1", name: "Fix header", note: "see issue", status: "active", flagged: true,
+      dueDate: "2026-10-01T00:00:00.000Z", deferDate: null, completedAt: null, estimatedMinutes: 30,
+      tags: ["website", "Priority : High", "Mac : Online"], projectId: "p1", parentTaskId: null, repeatRule: null, modifiedAt: null,
+    },
+    config,
+    { projectPageId: "np1", parentPageId: null },
+  );
+  assert.deepEqual(props.Tags, { multi_select: [{ name: "website" }] });
+  assert.deepEqual(props.Priority, { select: { name: "High" } });
+  assert.deepEqual(props.Project, { relation: [{ id: "np1" }] });
+  assert.deepEqual(props["Parent Task"], { relation: [] });
+  assert.deepEqual(props.Flagged, { checkbox: true });
+  assert.deepEqual(props["Estimate (min)"], { number: 30 });
+  assert.deepEqual(props["OF ID"], { rich_text: [{ text: { content: "t1" } }] });
 });
